@@ -16,6 +16,7 @@ import {
   updateProductCategory,
   setInventoryQuantity,
   setProductImage,
+  publishProductToChannels,
   getFirstLocation,
   addProductsToCollection,
 } from "./shopify";
@@ -78,6 +79,7 @@ interface OfferContext {
     string,
     { productType: string | null; taxonomyCategoryId: string | null }
   >;
+  publicationIds: string[];
 }
 
 function parseQueue(data: string | null): QueueData | null {
@@ -120,7 +122,15 @@ async function buildOfferContext(
       ]),
   );
 
-  return { mode, locationId, collectionByCategory, shopifyCategoryByText };
+  const settings = await getSettings(shop);
+
+  return {
+    mode,
+    locationId,
+    collectionByCategory,
+    shopifyCategoryByText,
+    publicationIds: settings.publicationIds,
+  };
 }
 
 async function loadOffer(shop: string, index: number) {
@@ -279,7 +289,7 @@ export async function processOffer(
   },
   ctx: OfferContext,
 ): Promise<{ outcome: "created" | "updated" | "skipped"; productId: string | null }> {
-  const { mode, locationId, shopifyCategoryByText } = ctx;
+  const { mode, locationId, shopifyCategoryByText, publicationIds } = ctx;
 
   const found = await findProductByBarcode(graphql, offer.ean13 ?? "");
   let productId = offer.productId ?? null;
@@ -368,6 +378,10 @@ export async function processOffer(
         // Immagine non essenziale: un URL non valido non deve far fallire l'import del prodotto.
       }
     }
+  }
+
+  if (publicationIds.length > 0) {
+    await publishProductToChannels(graphql, product.id, publicationIds);
   }
 
   return { outcome: "created", productId: product.id };

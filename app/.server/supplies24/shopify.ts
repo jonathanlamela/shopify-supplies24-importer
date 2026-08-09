@@ -477,3 +477,63 @@ export async function getFirstLocation(
   );
   return data.locations.nodes[0]?.id ?? null;
 }
+
+export interface PublicationRef {
+  id: string;
+  title: string;
+}
+
+const LIST_PUBLICATIONS_QUERY = `#graphql
+query ListPublications($first: Int!) {
+  publications(first: $first) {
+    nodes {
+      id
+      catalog { title }
+    }
+  }
+}`;
+
+/**
+ * Elenca i canali di vendita (publication) disponibili sul negozio,
+ * da mostrare nelle Impostazioni per la selezione dei canali di pubblicazione.
+ */
+export async function fetchPublications(
+  client: GraphqlLike,
+): Promise<PublicationRef[]> {
+  const data = await gql<{
+    publications: { nodes: { id: string; catalog: { title: string } | null }[] };
+  }>(client, LIST_PUBLICATIONS_QUERY, { first: 50 });
+  return data.publications.nodes.map((node) => ({
+    id: node.id,
+    title: node.catalog?.title ?? node.id,
+  }));
+}
+
+const PUBLISH_PRODUCT_MUTATION = `#graphql
+mutation PublishProduct($id: ID!, $input: [PublicationInput!]!) {
+  publishablePublish(id: $id, input: $input) {
+    userErrors { field message }
+  }
+}`;
+
+/**
+ * Pubblica un prodotto sui canali di vendita configurati nelle Impostazioni.
+ */
+export async function publishProductToChannels(
+  client: GraphqlLike,
+  productId: string,
+  publicationIds: string[],
+): Promise<void> {
+  if (publicationIds.length === 0) {
+    return;
+  }
+  const data = await gql<{
+    publishablePublish: {
+      userErrors: { field?: string[] | null; message: string }[];
+    };
+  }>(client, PUBLISH_PRODUCT_MUTATION, {
+    id: productId,
+    input: publicationIds.map((publicationId) => ({ publicationId })),
+  });
+  throwUserErrors(data.publishablePublish.userErrors);
+}

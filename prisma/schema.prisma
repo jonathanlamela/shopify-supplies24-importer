@@ -35,12 +35,13 @@ model Session {
 
 // Configurazione del modulo (una riga per negozio)
 model Supplies24Setting {
-  id          Int      @id @default(autoincrement())
-  shop        String   @unique
-  downloadUrl String?
-  apiKey      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  shop          String   @unique
+  downloadUrl   String?
+  apiKey        String?
+  publicationIds String? // JSON array di ID di Publication (canali di vendita) su cui pubblicare i prodotti creati
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // Fascia di ricarico (min/max sul prezzo all'ingrosso, percentuale di profitto)

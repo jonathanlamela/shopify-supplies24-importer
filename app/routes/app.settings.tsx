@@ -3,16 +3,19 @@ import { Form, useActionData, useLoaderData } from "react-router";
 
 import { authenticate } from "../shopify.server";
 import { getSettings, saveSettings } from "../.server/supplies24/context";
+import { fetchPublications, type GraphqlLike } from "../.server/supplies24/shopify";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const settings = await getSettings(session.shop);
+  const publications = await fetchPublications(admin as unknown as GraphqlLike);
 
   const cronUrl = `${new URL(request.url).origin}/api/supplies24/cron`;
 
   return {
     shop: session.shop,
     settings,
+    publications,
     cronUrl,
   };
 };
@@ -23,6 +26,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const downloadUrl = String(formData.get("downloadUrl") ?? "").trim();
   const apiKey = String(formData.get("apiKey") ?? "").trim();
+  const publicationIds = formData.getAll("publicationIds").map(String);
 
   if (!downloadUrl) {
     return { ok: false, error: "L'URL di download è obbligatorio." };
@@ -31,13 +35,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const settings = await saveSettings(session.shop, {
     downloadUrl,
     apiKey: apiKey || crypto.randomUUID(),
+    publicationIds,
   });
 
   return { ok: true, settings };
 };
 
 export default function SettingsPage() {
-  const { settings, cronUrl } = useLoaderData<typeof loader>();
+  const { settings, publications, cronUrl } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -78,6 +83,29 @@ export default function SettingsPage() {
             />
             <span className="hint">
               Token usato per autenticare le richieste all&apos;endpoint cron.
+            </span>
+          </div>
+
+          <div className="field">
+            <label>Canali di pubblicazione</label>
+            {publications.length === 0 && (
+              <span className="hint">Nessun canale di vendita trovato.</span>
+            )}
+            {publications.map((pub) => (
+              <label key={pub.id} style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  name="publicationIds"
+                  value={pub.id}
+                  defaultChecked={settings.publicationIds.includes(pub.id)}
+                />
+                {pub.title}
+              </label>
+            ))}
+            <span className="hint">
+              I prodotti creati durante l&apos;importazione verranno pubblicati
+              automaticamente sui canali selezionati. Se nessuno è selezionato,
+              vale il comportamento predefinito di Shopify per ogni canale.
             </span>
           </div>
 
