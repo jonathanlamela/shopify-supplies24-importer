@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// Configurazione del modulo (una riga per negozio)
+model Supplies24Setting {
+  id          Int      @id @default(autoincrement())
+  shop        String   @unique
+  downloadUrl String?
+  apiKey      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Fascia di ricarico (min/max sul prezzo all'ingrosso, percentuale di profitto)
+model Supplies24Recharge {
+  id        Int      @id @default(autoincrement())
+  shop      String
+  min       Float
+  max       Float
+  profit    Float
+  createdAt DateTime @default(now())
+}
+
+// Mapping categoria Supplies24 -> collezione Shopify
+model Supplies24CategoryMap {
+  id              Int      @id @default(autoincrement())
+  shop            String
+  categoryText    String
+  collectionId    String?
+  collectionTitle String?
+  createdAt       DateTime @default(now())
+
+  @@unique([shop, categoryText])
+}
+
+// Prodotto del listino Supplies24
+model Supplies24Offer {
+  id               Int      @id @default(autoincrement())
+  shop             String
+  internalCode     String?
+  reference        String?
+  ean13            String?
+  manufacturer     String?
+  name             String?
+  quantity         Int      @default(0)
+  price            Float    @default(0)
+  wholesalePrice   Float    @default(0)
+  descriptionShort String?
+  category         String?
+  executed         Boolean  @default(false)
+  productId        String?
+  dateAdd          DateTime @default(now())
+
+  @@index([shop, executed])
+  @@index([shop, internalCode])
+  @@index([shop, ean13])
+}
+
+// Esecuzioni dell'importazione
+model Supplies24ImportRun {
+  id         Int      @id @default(autoincrement())
+  shop       String
+  mode       String   // "full" | "update"
+  status     String   // "running" | "success" | "error"
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+  summary    String?
+}
