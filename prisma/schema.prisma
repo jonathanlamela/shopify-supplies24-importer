@@ -54,13 +54,37 @@ model Supplies24Recharge {
 }
 
 // Mapping categoria Supplies24 -> collezione Shopify
+model Supplies24CollectionMap {
+  id                  Int      @id @default(autoincrement())
+  shop                String
+  categoryText        String
+  collectionId        String?
+  collectionTitle     String?
+  previousCollectionId String?
+  createdAt           DateTime @default(now())
+
+  @@unique([shop, categoryText])
+}
+
+// Mapping categoria fornitore -> categoria Shopify (productType + productCategory)
 model Supplies24CategoryMap {
-  id              Int      @id @default(autoincrement())
-  shop            String
-  categoryText    String
-  collectionId    String?
-  collectionTitle String?
-  createdAt       DateTime @default(now())
+  id                   Int      @id @default(autoincrement())
+  shop                 String
+  categoryText         String
+  productType          String?
+  taxonomyCategoryId   String?
+  taxonomyCategoryName String?
+  createdAt            DateTime @default(now())
+
+  @@unique([shop, categoryText])
+}
+
+// Categorie lette dall'ultimo listino scaricato (per il mapping pre-import)
+model Supplies24Category {
+  id           Int      @id @default(autoincrement())
+  shop         String
+  categoryText String
+  createdAt    DateTime @default(now())
 
   @@unique([shop, categoryText])
 }
@@ -95,6 +119,9 @@ model Supplies24ImportRun {
   mode       String   // "full" | "update"
   status     String   // "running" | "success" | "error"
   startedAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   finishedAt DateTime?
+  progress   String?  // JSON { message, counts }
+  data       String?  // JSON stato della coda (locationId, staleOffers, counts, total)
   summary    String?
 }

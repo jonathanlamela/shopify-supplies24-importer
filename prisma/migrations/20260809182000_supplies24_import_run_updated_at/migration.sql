@@ -1,0 +1,4 @@
+ALTER TABLE
+  "Supplies24ImportRun"
+ADD
+  COLUMN "updatedAt" DATETIME NOT NULL DEFAULT '2026-08-09 00:00:00';

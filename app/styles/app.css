@@ -1,0 +1,239 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 560px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field > label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #202223;
+}
+
+.field > input,
+.field > select {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #babfc3;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  color: #202223;
+  background: #fff;
+}
+
+.field > input:focus,
+.field > select:focus {
+  outline: none;
+  border-color: #2c6ecb;
+  box-shadow: 0 0 0 1px #2c6ecb;
+}
+
+.field > input[readonly] {
+  background: #fafbfb;
+  color: #6d7175;
+}
+
+.field .hint {
+  font-size: 0.8125rem;
+  color: #6d7175;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.actions button {
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  border: 1px solid #babfc3;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #202223;
+  cursor: pointer;
+}
+
+.actions button[type="submit"] {
+  background: #2c6ecb;
+  border-color: #2c6ecb;
+  color: #fff;
+}
+
+.actions button:hover {
+  filter: brightness(0.96);
+}
+
+.row-actions button {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid #babfc3;
+  border-radius: 6px;
+  background: #fff;
+  color: #b98900;
+  cursor: pointer;
+}
+
+.row-actions button[data-tone="critical"] {
+  color: #b42318;
+}
+
+.message {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.message.success {
+  background: #e3f1df;
+  color: #1f6e2f;
+  border: 1px solid #b5d6ac;
+}
+
+.message.error {
+  background: #fff0ef;
+  color: #b42318;
+  border: 1px solid #f0c4bc;
+}
+
+.code-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f6f6f7;
+  border: 1px solid #e1e3e5;
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: #202223;
+  word-break: break-all;
+}
+
+.code-box button {
+  flex-shrink: 0;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid #babfc3;
+  border-radius: 6px;
+  background: #fff;
+  color: #202223;
+  cursor: pointer;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.taxonomy-picker {
+  position: relative;
+  min-width: 240px;
+}
+
+.taxonomy-picker input[type="text"] {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #babfc3;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #202223;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.taxonomy-picker input[type="text"]:focus {
+  outline: none;
+  border-color: #2c6ecb;
+  box-shadow: 0 0 0 1px #2c6ecb;
+}
+
+.taxonomy-results {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e1e3e5;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.taxonomy-results li {
+  border-bottom: 1px solid #f1f2f3;
+}
+
+.taxonomy-results li:last-child {
+  border-bottom: none;
+}
+
+.taxonomy-results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: #202223;
+  cursor: pointer;
+}
+
+.taxonomy-results button:hover {
+  background: #f6f6f7;
+}
+
+.taxonomy-selected {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  color: #2c6ecb;
+}
+
+.progress-box {
+  border: 1px solid #e1e3e5;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.progress-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #eceff1;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #2c6ecb;
+  transition: width 0.3s ease;
+}
+
+.progress-current {
+  font-size: 0.8125rem;
+  color: #6d7175;
+  word-break: break-word;
+}

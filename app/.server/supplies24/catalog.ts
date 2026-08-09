@@ -84,7 +84,7 @@ export function parseCatalog(raw: string): CatalogOffer[] {
     const price = parsePrice(data[6]);
 
     const descriptionShort = cleanDescription(description);
-    const name = buildName(description, reference, manufacturer);
+    const name = buildName(description, reference);
     const category = buildCategory(description, reference, manufacturer);
 
     const quantity = data[7] === "1" ? 15 : 0;
@@ -150,7 +150,7 @@ function cleanDescription(value: string): string {
     .trim();
 }
 
-function buildName(description: string, reference: string, _manufacturer: string): string {
+function buildName(description: string, reference: string): string {
   let name = reference ? description.split(reference)[0] + reference : description;
   name = name.replace(/ORIGINAL/g, "").replace(/Seiten/g, "pagine").replace(/~'/g, "capacità indicativa");
   return name.trim();
@@ -193,6 +193,10 @@ export function cleanCatalog(offers: CatalogOffer[]): CatalogOffer[] {
     cleaned.push({
       ...offer,
       reference: normalizeReference(offer.reference),
+      category:
+        offer.name.toLowerCase().includes("honeywell")
+          ? "Lettori di codici a barre"
+          : offer.category,
     });
   }
 
