@@ -356,17 +356,36 @@ export async function processOffer(
     }
   };
 
+  const isNotFoundError = (error: unknown) =>
+    error instanceof Error && /does not exist/i.test(error.message);
+
   if (productId && found) {
-    await applyUpdate(productId);
-    return { outcome: "updated", productId };
+    try {
+      await applyUpdate(productId);
+      return { outcome: "updated", productId };
+    } catch (error) {
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+      // Il prodotto risultava trovato dalla ricerca per barcode ma è già
+      // stato cancellato (indice di ricerca non ancora aggiornato): ricrealo.
+      productId = null;
+    }
   }
 
   if (!productId && found) {
-    productId = found.id;
-    variantId = found.variants[0]?.id ?? null;
-    inventoryItemId = found.variants[0]?.inventoryItemId ?? null;
-    await applyUpdate(productId);
-    return { outcome: "updated", productId };
+    try {
+      productId = found.id;
+      variantId = found.variants[0]?.id ?? null;
+      inventoryItemId = found.variants[0]?.inventoryItemId ?? null;
+      await applyUpdate(productId);
+      return { outcome: "updated", productId };
+    } catch (error) {
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+      productId = null;
+    }
   }
 
   if (mode === "update") {
