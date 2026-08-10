@@ -142,6 +142,38 @@ async function loadOffer(shop: string, index: number) {
   });
 }
 
+async function loadOfferBatch(shop: string, index: number, count: number) {
+  return prisma.supplies24Offer.findMany({
+    where: { shop },
+    orderBy: { id: "asc" },
+    skip: index,
+    take: count,
+  });
+}
+
+/**
+ * Esegue thunks con un numero massimo di esecuzioni concorrenti, per non
+ * saturare il rate limit dell'Admin API di Shopify durante un batch.
+ */
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  async function runNext(): Promise<void> {
+    const current = cursor++;
+    if (current >= items.length) {
+      return;
+    }
+    await worker(items[current]);
+    await runNext();
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => runNext()),
+  );
+}
+
 /**
  * Fase 1 (UI "start"): scarica il listino, lo pulisce, calcola i ricarichi,
  * memorizza la coda delle offerte nel DB e restituisce la dimensione della coda.
@@ -394,18 +426,23 @@ export interface StepResult {
   current: string;
   outcome: string;
   counts: ImportCounts;
+  processed: number;
   error?: string;
 }
 
+const STEP_CONCURRENCY = 5;
+
 /**
- * Fase 2 (UI "step"): elabora l'offerta all'indice della coda, aggiorna i
- * contatori e restituisce lo stato. Ogni richiesta processa un solo prodotto.
+ * Fase 2 (UI "step"): elabora fino a `batchSize` offerte a partire da `index`,
+ * con un massimo di STEP_CONCURRENCY elaborazioni in parallelo verso l'Admin
+ * API di Shopify, aggiorna i contatori e restituisce lo stato aggregato.
  */
 export async function stepImport(
   shop: string,
   runId: number,
   index: number,
   graphql: GraphqlLike,
+  batchSize = 5,
 ): Promise<StepResult> {
   const run = await prisma.supplies24ImportRun.findUnique({
     where: { id: runId },
@@ -418,6 +455,7 @@ export async function stepImport(
       current: "",
       outcome: "failed",
       counts: emptyCounts(),
+      processed: 0,
       error: "Esecuzione non in corso.",
     };
   }
@@ -430,8 +468,8 @@ export async function stepImport(
     counts: emptyCounts(),
   };
 
-  const offer = await loadOffer(shop, index);
-  if (!offer) {
+  const offers = await loadOfferBatch(shop, index, batchSize);
+  if (offers.length === 0) {
     return {
       ok: false,
       index,
@@ -439,47 +477,55 @@ export async function stepImport(
       current: "",
       outcome: "failed",
       counts: queueData.counts,
+      processed: 0,
       error: "Fine coda.",
     };
   }
 
   const ctx = await buildOfferContext(shop, queueData.mode, queueData.locationId);
 
-  try {
-    const { outcome, productId } = await processOffer(graphql, offer, ctx);
-    if (outcome !== "skipped") {
-      await prisma.supplies24Offer.update({
-        where: { id: offer.id },
-        data: { executed: true, productId: productId ?? offer.productId },
-      });
+  let lastOfferName = "";
+  const errors: string[] = [];
+
+  await runWithConcurrency(offers, STEP_CONCURRENCY, async (offer) => {
+    lastOfferName = offer.name ?? lastOfferName;
+    try {
+      const { outcome, productId } = await processOffer(graphql, offer, ctx);
+      if (outcome !== "skipped") {
+        await prisma.supplies24Offer.update({
+          where: { id: offer.id },
+          data: { executed: true, productId: productId ?? offer.productId },
+        });
+      }
+      if (outcome === "created") queueData.counts.created++;
+      else if (outcome === "updated") queueData.counts.updated++;
+      else if (outcome === "skipped") queueData.counts.skipped++;
+    } catch (error) {
+      queueData.counts.failed++;
+      errors.push(
+        `${offer.internalCode ?? offer.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
-    if (outcome === "created") queueData.counts.created++;
-    else if (outcome === "updated") queueData.counts.updated++;
-    else if (outcome === "skipped") queueData.counts.skipped++;
+  });
 
-    await persistQueue(run, queueData, `Elaborato ${index + 1}/${queueData.total}`);
+  await persistQueue(
+    run,
+    queueData,
+    `Elaborati ${Math.min(index + offers.length, queueData.total)}/${queueData.total}`,
+  );
 
-    return {
-      ok: true,
-      index,
-      total: queueData.total,
-      current: offer.name ?? "",
-      outcome,
-      counts: queueData.counts,
-    };
-  } catch (error) {
-    queueData.counts.failed++;
-    await persistQueue(run, queueData, `Errore su ${offer.internalCode ?? index}`);
-    return {
-      ok: false,
-      index,
-      total: queueData.total,
-      current: offer.name ?? "",
-      outcome: "failed",
-      counts: queueData.counts,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
+  return {
+    ok: true,
+    index,
+    total: queueData.total,
+    current: lastOfferName,
+    outcome: errors.length > 0 ? "failed" : "created",
+    counts: queueData.counts,
+    processed: offers.length,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
+  };
 }
 
 async function persistQueue(

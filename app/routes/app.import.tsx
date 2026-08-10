@@ -235,11 +235,13 @@ export default function ImportPage() {
       },
     });
 
-    for (let i = 0; i < start.total; i++) {
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < start.total; ) {
       const stepForm = new FormData();
       stepForm.set("intent", "step");
       stepForm.set("runId", String(start.runId));
       stepForm.set("index", String(i));
+      stepForm.set("batchSize", String(BATCH_SIZE));
 
       const step = await postJson(stepForm);
       if (step.message) {
@@ -261,8 +263,10 @@ export default function ImportPage() {
         return;
       }
 
+      i += step.processed && step.processed > 0 ? step.processed : BATCH_SIZE;
+
       setProgress({
-        index: i + 1,
+        index: Math.min(i, step.total ?? start.total),
         total: step.total ?? start.total,
         current: step.current ?? "",
         counts: step.counts ?? progress?.counts,

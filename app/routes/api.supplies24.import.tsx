@@ -79,7 +79,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "step") {
     const runId = Number(formData.get("runId"));
     const index = Number(formData.get("index"));
-    return Response.json(await stepImport(shop, runId, index, graphql));
+    const batchSize = Number(formData.get("batchSize")) || 5;
+    return Response.json(await stepImport(shop, runId, index, graphql, batchSize));
   }
 
   if (intent === "finish") {
